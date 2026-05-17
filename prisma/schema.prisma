@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id          String        @id @default(uuid())
+  email       String        @unique
+  password    String
+  memberships Membership[]
+  createdAt   DateTime      @default(now())
+  assignedTickets Ticket[] @relation("TicketAssignments")
+}
+
+model Organization {
+  id          String        @id @default(uuid())
+  name        String
+  memberships Membership[]
+  tickets     Ticket[]
+  slaPolicies SlaPolicy[]
+  createdAt   DateTime      @default(now())
+}
+
+model Membership {
+  id      String @id @default(uuid())
+
+  userId  String
+  orgId   String
+
+  role    Role
+
+  user User @relation(fields: [userId], references: [id])
+  org  Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([userId, orgId])
+}
+
+model Ticket {
+  id          String         @id @default(uuid())
+  title       String
+  description String?
+
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority
+
+  orgId       String
+
+  slaPolicyId String?
+  slaDueAt    DateTime?
+
+  isBreached  Boolean        @default(false)
+
+  org         Organization   @relation(fields: [orgId], references: [id])
+
+  slaPolicy   SlaPolicy?     @relation(fields: [slaPolicyId], references: [id])
+
+  createdAt   DateTime       @default(now())
+
+  assignedToId String?
+
+  assignedTo User? @relation("TicketAssignments", fields: [assignedToId], references: [id])
+}
+
+model SlaPolicy {
+  id                    String         @id @default(uuid())
+
+  name                  String
+  priority              TicketPriority
+
+  responseTimeHours     Int
+  resolutionTimeHours   Int
+
+  organizationId        String
+
+  organization          Organization   @relation(fields: [organizationId], references: [id])
+
+  tickets               Ticket[]
+
+  createdAt             DateTime       @default(now())
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
