@@ -15,6 +15,7 @@ model User {
   memberships Membership[]
   createdAt   DateTime      @default(now())
   assignedTickets Ticket[] @relation("TicketAssignments")
+  ticketEvents TicketEvent[]
 }
 
 model Organization {
@@ -64,6 +65,8 @@ model Ticket {
   assignedToId String?
 
   assignedTo User? @relation("TicketAssignments", fields: [assignedToId], references: [id])
+
+  events TicketEvent[]
 }
 
 model SlaPolicy {
@@ -100,4 +103,28 @@ enum TicketPriority {
   LOW
   MEDIUM
   HIGH
+}
+
+model TicketEvent {
+  id        String   @id @default(uuid())
+
+  ticketId  String
+  actorId   String?
+
+  type      TicketEventType
+
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+
+  actor  User? @relation(fields: [actorId], references: [id])
+}
+
+enum TicketEventType {
+  CREATED
+  ASSIGNED
+  STATUS_CHANGED
+  SLA_BREACHED
 }

@@ -36,6 +36,13 @@ export class SlaMonitorService {
         },
       });
 
+      await this.prisma.ticketEvent.create({
+        data: {
+          ticketId: ticket.id,
+          type: 'SLA_BREACHED',
+        },
+      });
+
       console.log(
         `Ticket breached SLA: ${ticket.id}`,
       );

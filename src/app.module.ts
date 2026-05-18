@@ -10,6 +10,7 @@ import { SlaModule } from './sla/sla.module';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SlaMonitorService } from './sla-monitor/sla-monitor.service';
+import { MailModule } from './mail/mail.module';
 
 
 @Module({
@@ -26,6 +27,7 @@ import { SlaMonitorService } from './sla-monitor/sla-monitor.service';
     OrganizationsModule,
     TicketsModule,
     SlaModule,
+    MailModule,
   ],
 
   controllers: [AppController],
