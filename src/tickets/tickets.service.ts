@@ -19,7 +19,7 @@ export class TicketsService {
   constructor(
     private prisma: PrismaService,
     private mailService: MailService,
-  ) {}
+  ) { }
 
   async createTicket(
     userId: string,
@@ -275,5 +275,39 @@ export class TicketsService {
     }
 
     return updatedTicket;
+  }
+
+  async getTicketById(
+    userId: string,
+    ticketId: string,
+  ) {
+    const ticket =
+      await this.prisma.ticket.findUnique({
+        where: {
+          id: ticketId,
+        },
+      });
+
+    if (!ticket) {
+      throw new ForbiddenException(
+        'Ticket not found',
+      );
+    }
+
+    const membership =
+      await this.prisma.membership.findFirst({
+        where: {
+          userId,
+          orgId: ticket.orgId,
+        },
+      });
+
+    if (!membership) {
+      throw new ForbiddenException(
+        'No access to ticket',
+      );
+    }
+
+    return ticket;
   }
 }

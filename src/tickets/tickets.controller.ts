@@ -41,6 +41,17 @@ export class TicketsController {
         );
     }
     @UseGuards(JwtAuthGuard)
+    @Get(':id')
+    getTicketById(
+        @Req() req: any,
+        @Param('id') id: string,
+    ) {
+        return this.ticketsService.getTicketById(
+            req.user.userId,
+            id,
+        );
+    }
+    @UseGuards(JwtAuthGuard)
     @Patch(':id/status')
     updateStatus(
         @Req() req: any,
