@@ -77,5 +77,14 @@ export class TicketsController {
             dto,
         );
     }
+    @UseGuards(JwtAuthGuard)
+    @Get('my-tickets')
+    getMyTickets(
+        @Req() req: any,
+    ) {
+        return this.ticketsService.getMyTickets(
+            req.user.userId,
+        );
+    }
 
 }

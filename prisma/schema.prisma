@@ -16,6 +16,7 @@ model User {
   createdAt   DateTime      @default(now())
   assignedTickets Ticket[] @relation("TicketAssignments")
   ticketEvents TicketEvent[]
+  requestedTickets Ticket[] @relation("RequestedTickets")
 }
 
 model Organization {
@@ -67,6 +68,10 @@ model Ticket {
   assignedTo User? @relation("TicketAssignments", fields: [assignedToId], references: [id])
 
   events TicketEvent[]
+
+  requesterId String?
+
+  requester User? @relation("RequestedTickets", fields: [requesterId], references: [id])
 }
 
 model SlaPolicy {

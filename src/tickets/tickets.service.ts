@@ -14,6 +14,8 @@ import { calculateSlaDueDate } from 'src/common/utils/calculate-sla-date';
 
 import { Role } from '@prisma/client';
 
+
+
 @Injectable()
 export class TicketsService {
   constructor(
@@ -62,6 +64,8 @@ export class TicketsService {
         title: dto.title,
         description: dto.description,
         priority: dto.priority,
+
+        requesterId: userId,
 
         orgId: dto.orgId,
 
@@ -125,6 +129,14 @@ export class TicketsService {
       await this.prisma.ticket.findUnique({
         where: {
           id: ticketId,
+        },
+
+        include: {
+          events: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
         },
       });
 
@@ -286,6 +298,14 @@ export class TicketsService {
         where: {
           id: ticketId,
         },
+
+        include: {
+          events: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+        },
       });
 
     if (!ticket) {
@@ -308,6 +328,33 @@ export class TicketsService {
       );
     }
 
+    const isStaff =
+      membership.role === 'ADMIN'
+      ||
+      membership.role === 'AGENT';
+
+    const isRequester =
+      ticket.requesterId === userId;
+
+    if (!isStaff && !isRequester) {
+      throw new ForbiddenException(
+        'No access to ticket',
+      );
+    }
+
     return ticket;
+  }
+  async getMyTickets(
+    userId: string,
+  ) {
+    return this.prisma.ticket.findMany({
+      where: {
+        requesterId: userId,
+      },
+
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 }
