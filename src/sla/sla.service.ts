@@ -3,15 +3,20 @@ import {
   Injectable,
 } from '@nestjs/common';
 
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService }
+  from 'src/prisma/prisma.service';
 
-import { CreateSlaPolicyDto } from './dto/create-sla-policy.dto';
+import { CreateSlaPolicyDto }
+  from './dto/create-sla-policy.dto';
 
-import { Role } from '@prisma/client';
+import { Role }
+  from '@prisma/client';
 
 @Injectable()
 export class SlaService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+  ) {}
 
   async createPolicy(
     userId: string,
@@ -41,15 +46,49 @@ export class SlaService {
       await this.prisma.slaPolicy.create({
         data: {
           name: dto.name,
+
           priority: dto.priority,
+
           responseTimeHours:
             dto.responseTimeHours,
+
           resolutionTimeHours:
             dto.resolutionTimeHours,
-          organizationId: dto.organizationId,
+
+          organizationId:
+            dto.organizationId,
         },
       });
 
     return policy;
   }
+
+  async getPolicies(
+  userId: string,
+  organizationId: string,
+) {
+  const membership =
+    await this.prisma.membership.findFirst({
+      where: {
+        userId,
+        orgId: organizationId,
+      },
+    });
+
+  if (!membership) {
+    throw new ForbiddenException(
+      'No access to organization',
+    );
+  }
+
+  return this.prisma.slaPolicy.findMany({
+    where: {
+      organizationId,
+    },
+
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+}
 }

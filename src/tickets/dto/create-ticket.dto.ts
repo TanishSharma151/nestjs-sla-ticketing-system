@@ -17,4 +17,8 @@ export class CreateTicketDto {
 
   @IsString()
   slaPolicyId!: string;
+
+  @IsOptional()
+  @IsString()
+  attachmentUrl?: string;
 }

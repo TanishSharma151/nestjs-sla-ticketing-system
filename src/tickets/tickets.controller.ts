@@ -1,90 +1,106 @@
 import {
-    Body,
-    Controller,
-    Get,
-    Post,
-    Req,
-    UseGuards,
-    Patch,
-    Param,
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  UseGuards,
+  Patch,
+  Param,
 } from '@nestjs/common';
 
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { TicketsService } from './tickets.service';
-import { CreateTicketDto } from './dto/create-ticket.dto';
-import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
-import { AssignTicketDto } from './dto/assign-ticket.dto';
+import { JwtAuthGuard }
+  from 'src/auth/guards/jwt-auth.guard';
 
+import { TicketsService }
+  from './tickets.service';
+
+import { CreateTicketDto }
+  from './dto/create-ticket.dto';
+
+import { UpdateTicketStatusDto }
+  from './dto/update-ticket-status.dto';
+
+import { AssignTicketDto }
+  from './dto/assign-ticket.dto';
 
 @Controller('tickets')
 export class TicketsController {
-    constructor(
-        private ticketsService: TicketsService,
-    ) { }
+  constructor(
+    private ticketsService: TicketsService,
+  ) { }
 
-    @UseGuards(JwtAuthGuard)
-    @Post()
-    createTicket(
-        @Req() req: any,
-        @Body() dto: CreateTicketDto,
-    ) {
-        return this.ticketsService.createTicket(
-            req.user.userId,
-            dto,
-        );
-    }
-    @UseGuards(JwtAuthGuard)
-    @Get()
-    getTickets(@Req() req: any) {
-        return this.ticketsService.getTickets(
-            req.user.userId,
-        );
-    }
-    @UseGuards(JwtAuthGuard)
-    @Get(':id')
-    getTicketById(
-        @Req() req: any,
-        @Param('id') id: string,
-    ) {
-        return this.ticketsService.getTicketById(
-            req.user.userId,
-            id,
-        );
-    }
-    @UseGuards(JwtAuthGuard)
-    @Patch(':id/status')
-    updateStatus(
-        @Req() req: any,
-        @Param('id') ticketId: string,
-        @Body() dto: UpdateTicketStatusDto,
-    ) {
-        return this.ticketsService.updateStatus(
-            req.user.userId,
-            ticketId,
-            dto,
-        );
-    }
-    @UseGuards(JwtAuthGuard)
-    @Patch(':id/assign')
-    assignTicket(
-        @Req() req: any,
-        @Param('id') ticketId: string,
-        @Body() dto: AssignTicketDto,
-    ) {
-        return this.ticketsService.assignTicket(
-            req.user.userId,
-            ticketId,
-            dto,
-        );
-    }
-    @UseGuards(JwtAuthGuard)
-    @Get('my-tickets')
-    getMyTickets(
-        @Req() req: any,
-    ) {
-        return this.ticketsService.getMyTickets(
-            req.user.userId,
-        );
-    }
+  @UseGuards(JwtAuthGuard)
+  @Post()
+  createTicket(
+    @Req() req: any,
+    @Body() dto: CreateTicketDto,
+  ) {
+    return this.ticketsService.createTicket(
+      req.user.userId,
+      dto,
+    );
+  }
 
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  getTickets(
+    @Req() req: any,
+  ) {
+    return this.ticketsService.getTickets(
+      req.user.userId,
+    );
+  }
+
+  // IMPORTANT:
+  // KEEP THIS ABOVE :id
+  @UseGuards(JwtAuthGuard)
+  @Get('my-tickets')
+  getMyTickets(
+    @Req() req: any,
+  ) {
+    return this.ticketsService.getMyTickets(
+      req.user.userId,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id')
+  getTicketById(
+    @Req() req: any,
+    @Param('id') id: string,
+  ) {
+    return this.ticketsService.getTicketById(
+      req.user.userId,
+      id,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/status')
+  updateStatus(
+    @Req() req: any,
+    @Param('id') ticketId: string,
+    @Body() dto: UpdateTicketStatusDto,
+  ) {
+    return this.ticketsService.updateStatus(
+      req.user.userId,
+      ticketId,
+      dto,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/assign')
+  assignTicket(
+    @Req() req: any,
+    @Param('id') ticketId: string,
+    @Body() dto: AssignTicketDto,
+  ) {
+    return this.ticketsService.assignTicket(
+      req.user.userId,
+      ticketId,
+      dto,
+    );
+  }
 }

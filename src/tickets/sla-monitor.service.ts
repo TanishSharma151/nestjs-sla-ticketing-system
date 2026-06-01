@@ -1,0 +1,61 @@
+import {
+  Injectable,
+} from '@nestjs/common';
+
+import {
+  Cron,
+} from '@nestjs/schedule';
+
+import { PrismaService }
+from 'src/prisma/prisma.service';
+
+@Injectable()
+export class SlaMonitorService {
+  constructor(
+    private prisma: PrismaService,
+  ) {}
+
+  @Cron('*/30 * * * * *')
+  async monitorBreaches() {
+    const now = new Date();
+
+    const breachedTickets =
+      await this.prisma.ticket.findMany({
+        where: {
+          isBreached: false,
+
+          slaDueAt: {
+            lt: now,
+          },
+
+          status: {
+            not: 'RESOLVED',
+          },
+        },
+      });
+
+    for (const ticket of breachedTickets) {
+      await this.prisma.ticket.update({
+        where: {
+          id: ticket.id,
+        },
+
+        data: {
+          isBreached: true,
+        },
+      });
+
+      await this.prisma.ticketEvent.create({
+        data: {
+          ticketId: ticket.id,
+
+          type: 'SLA_BREACHED',
+        },
+      });
+    }
+
+    console.log(
+      `Checked SLA breaches: ${breachedTickets.length}`,
+    );
+  }
+}

@@ -2,8 +2,9 @@ import {
   Injectable,
 } from '@nestjs/common';
 
-import { PassportStrategy }
-from '@nestjs/passport';
+import {
+  PassportStrategy,
+} from '@nestjs/passport';
 
 import {
   ExtractJwt,
@@ -11,16 +12,16 @@ import {
 } from 'passport-jwt';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(
-  Strategy,
-) {
+export class JwtStrategy
+  extends PassportStrategy(
+    Strategy,
+  ) {
   constructor() {
     super({
       jwtFromRequest:
         ExtractJwt.fromExtractors([
           (req) => {
-            return req?.cookies
-              ?.access_token;
+            return req?.cookies?.access_token;
           },
         ]),
 
@@ -31,10 +32,18 @@ export class JwtStrategy extends PassportStrategy(
     });
   }
 
-  async validate(payload: any) {
+  async validate(
+    payload: any,
+  ) {
     return {
-      userId: payload.sub,
-      email: payload.email,
+      userId:
+        payload.userId,
+
+      email:
+        payload.email,
+
+      role:
+        payload.role,
     };
   }
 }

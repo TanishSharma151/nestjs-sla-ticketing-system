@@ -62,7 +62,11 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.create({
       data: {
         title: dto.title,
+        
         description: dto.description,
+        
+        attachmentUrl: dto.attachmentUrl,
+
         priority: dto.priority,
 
         requesterId: userId,
@@ -86,9 +90,33 @@ export class TicketsService {
       'test@test.com',
       'Ticket Created',
       `
-        <h2>Ticket Created</h2>
-        <p>${ticket.title}</p>
-      `,
+    <div style="font-family:sans-serif;">
+      <h2>Ticket Created</h2>
+
+      <p>
+        Your ticket has been created.
+      </p>
+
+      <p>
+        <strong>${ticket.title}</strong>
+      </p>
+
+      <a
+        href="${process.env.FRONTEND_URL}/tickets/${ticket.id}"
+        style="
+          display:inline-block;
+          margin-top:12px;
+          padding:10px 16px;
+          background:black;
+          color:white;
+          text-decoration:none;
+          border-radius:8px;
+        "
+      >
+        Track Ticket
+      </a>
+    </div>
+  `,
     );
 
     return ticket;
@@ -133,6 +161,20 @@ export class TicketsService {
 
         include: {
           events: {
+            include: {
+              actor: true,
+            },
+
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+
+          comments: {
+            include: {
+              author: true,
+            },
+
             orderBy: {
               createdAt: 'desc',
             },
@@ -186,9 +228,34 @@ export class TicketsService {
       'test@test.com',
       'Ticket Status Updated',
       `
-        <h2>Status Changed</h2>
-        <p>${dto.status}</p>
-      `,
+    <div style="font-family:sans-serif;">
+      <h2>Ticket Status Updated</h2>
+
+      <p>
+        <strong>${ticket.title}</strong>
+      </p>
+
+      <p>
+        New status:
+        <strong>${dto.status}</strong>
+      </p>
+
+      <a
+        href="${process.env.FRONTEND_URL}/tickets/${ticket.id}"
+        style="
+          display:inline-block;
+          margin-top:12px;
+          padding:10px 16px;
+          background:black;
+          color:white;
+          text-decoration:none;
+          border-radius:8px;
+        "
+      >
+        View Ticket
+      </a>
+    </div>
+  `,
     );
 
     return updatedTicket;
@@ -280,9 +347,34 @@ export class TicketsService {
         assignee.email,
         'Ticket Assigned',
         `
-          <h2>Ticket Assigned</h2>
-          <p>${ticket.title}</p>
-        `,
+    <div style="font-family:sans-serif;">
+      <h2>Ticket Assigned</h2>
+
+      <p>
+        You were assigned a ticket.
+      </p>
+
+      <p>
+        <strong>Title:</strong>
+        ${ticket.title}
+      </p>
+
+      <a
+        href="${process.env.FRONTEND_URL}/tickets/${ticket.id}"
+        style="
+          display:inline-block;
+          margin-top:12px;
+          padding:10px 16px;
+          background:black;
+          color:white;
+          text-decoration:none;
+          border-radius:8px;
+        "
+      >
+        Open Ticket
+      </a>
+    </div>
+  `,
       );
     }
 
@@ -294,19 +386,33 @@ export class TicketsService {
     ticketId: string,
   ) {
     const ticket =
-      await this.prisma.ticket.findUnique({
-        where: {
-          id: ticketId,
+  await this.prisma.ticket.findUnique({
+    where: {
+      id: ticketId,
+    },
+
+    include: {
+      events: {
+        include: {
+          actor: true,
         },
 
-        include: {
-          events: {
-            orderBy: {
-              createdAt: 'desc',
-            },
-          },
+        orderBy: {
+          createdAt: 'desc',
         },
-      });
+      },
+
+      comments: {
+        include: {
+          author: true,
+        },
+
+        orderBy: {
+          createdAt: 'desc',
+        },
+      },
+    },
+  });
 
     if (!ticket) {
       throw new ForbiddenException(
@@ -349,7 +455,9 @@ export class TicketsService {
   ) {
     return this.prisma.ticket.findMany({
       where: {
-        requesterId: userId,
+        requester: {
+          id: userId,
+        },
       },
 
       orderBy: {

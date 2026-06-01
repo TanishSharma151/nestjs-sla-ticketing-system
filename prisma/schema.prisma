@@ -10,6 +10,7 @@ datasource db {
 
 model User {
   id          String        @id @default(uuid())
+  name        String?
   email       String        @unique
   password    String
   memberships Membership[]
@@ -17,6 +18,7 @@ model User {
   assignedTickets Ticket[] @relation("TicketAssignments")
   ticketEvents TicketEvent[]
   requestedTickets Ticket[] @relation("RequestedTickets")
+  comments Comment[]
 }
 
 model Organization {
@@ -72,6 +74,10 @@ model Ticket {
   requesterId String?
 
   requester User? @relation("RequestedTickets", fields: [requesterId], references: [id])
+
+  comments Comment[]
+
+  attachmentUrl String?
 }
 
 model SlaPolicy {
@@ -125,6 +131,21 @@ model TicketEvent {
   ticket Ticket @relation(fields: [ticketId], references: [id])
 
   actor  User? @relation(fields: [actorId], references: [id])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+
+  content   String
+
+  ticketId  String
+  authorId  String
+
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+
+  author User @relation(fields: [authorId], references: [id])
 }
 
 enum TicketEventType {
