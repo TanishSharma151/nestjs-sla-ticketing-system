@@ -9,10 +9,26 @@ import {
   Patch,
 } from '@nestjs/common';
 
-import { UpdateRoleDto } from './dto/update-role.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { OrganizationsService } from './organizations.service';
-import { CreateOrgDto } from './dto/create-org.dto';
+import { UpdateRoleDto }
+  from './dto/update-role.dto';
+
+import { JwtAuthGuard }
+  from 'src/auth/guards/jwt-auth.guard';
+
+import { OrganizationsService }
+  from './organizations.service';
+
+import { CreateOrgDto }
+  from './dto/create-org.dto';
+
+import { Roles }
+  from 'src/auth/decorators/roles.decorator';
+
+import { RolesGuard }
+  from 'src/auth/guards/roles.guard';
+
+import { AddMemberDto }
+  from './dto/add-member.dto';
 
 @Controller('organizations')
 export class OrganizationsController {
@@ -22,17 +38,26 @@ export class OrganizationsController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  createOrg(@Req() req: any, @Body() dto: CreateOrgDto) {
+  createOrg(
+    @Req() req: any,
+
+    @Body() dto: CreateOrgDto,
+  ) {
     return this.organizationsService.createOrg(
       req.user.userId,
       dto,
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+  )
+  @Roles('ADMIN')
   @Get(':orgId/members')
   getMembers(
     @Req() req: any,
+
     @Param('orgId') orgId: string,
   ) {
     return this.organizationsService.getMembers(
@@ -41,7 +66,11 @@ export class OrganizationsController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+  )
+  @Roles('ADMIN')
   @Patch(':orgId/members/:memberId')
   updateMemberRole(
     @Req() req: any,
@@ -56,6 +85,22 @@ export class OrganizationsController {
       req.user.userId,
       orgId,
       memberId,
+      dto,
+    );
+  }
+  @Post(':orgId/members')
+  addMember(
+    @Req() req: any,
+
+    @Param('orgId')
+    orgId: string,
+
+    @Body()
+    dto: AddMemberDto,
+  ) {
+    return this.organizationsService.addMember(
+      req.user.userId,
+      orgId,
       dto,
     );
   }

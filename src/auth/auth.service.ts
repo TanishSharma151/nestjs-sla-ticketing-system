@@ -18,6 +18,10 @@ import { LoginDto }
 import * as bcrypt
   from 'bcrypt';
 
+import {
+  Role,
+} from '@prisma/client';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -48,15 +52,33 @@ export class AuthService {
         10,
       );
 
+    const organization =
+      await this.prisma.organization.findFirst();
+
     const user =
       await this.prisma.user.create({
         data: {
-          name : dto.name,
+          name: dto.name,
 
           email: dto.email,
 
-          password:
-            hashedPassword,
+          password: hashedPassword,
+
+          memberships: organization
+            ? {
+              create: {
+                orgId:
+                  organization.id,
+
+                role:
+                  Role.CLIENT,
+              },
+            }
+            : undefined,
+        },
+
+        include: {
+          memberships: true,
         },
       });
 
@@ -66,7 +88,6 @@ export class AuthService {
 
       user: {
         id: user.id,
-
         email: user.email,
       },
     };
@@ -115,12 +136,13 @@ export class AuthService {
 
         role:
           membership?.role ||
-          'AGENT',
+          null,
       });
 
     return {
       access_token: token,
     };
+
   }
 
   async me(userId: string) {

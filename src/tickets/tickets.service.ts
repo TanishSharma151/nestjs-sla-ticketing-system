@@ -3,23 +3,39 @@ import {
   Injectable,
 } from '@nestjs/common';
 
-import { PrismaService } from 'src/prisma/prisma.service';
-import { MailService } from 'src/mail/mail.service';
+import {
+  PrismaService,
+} from 'src/prisma/prisma.service';
 
-import { CreateTicketDto } from './dto/create-ticket.dto';
-import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
-import { AssignTicketDto } from './dto/assign-ticket.dto';
+import {
+  MailService,
+} from 'src/mail/mail.service';
 
-import { calculateSlaDueDate } from 'src/common/utils/calculate-sla-date';
+import {
+  CreateTicketDto,
+} from './dto/create-ticket.dto';
 
-import { Role } from '@prisma/client';
+import {
+  UpdateTicketStatusDto,
+} from './dto/update-ticket-status.dto';
 
+import {
+  AssignTicketDto,
+} from './dto/assign-ticket.dto';
 
+import {
+  calculateSlaDueDate,
+} from 'src/common/utils/calculate-sla-date';
+
+import {
+  Role,
+} from '@prisma/client';
 
 @Injectable()
 export class TicketsService {
   constructor(
     private prisma: PrismaService,
+
     private mailService: MailService,
   ) { }
 
@@ -55,34 +71,48 @@ export class TicketsService {
       );
     }
 
-    const slaDueAt = calculateSlaDueDate(
-      slaPolicy.resolutionTimeHours,
-    );
+    const slaDueAt =
+      calculateSlaDueDate(
+        slaPolicy.resolutionTimeHours,
+      );
 
-    const ticket = await this.prisma.ticket.create({
-      data: {
-        title: dto.title,
-        
-        description: dto.description,
-        
-        attachmentUrl: dto.attachmentUrl,
+    const ticket =
+      await this.prisma.ticket.create({
+        data: {
+          title: dto.title,
 
-        priority: dto.priority,
+          description:
+            dto.description,
 
-        requesterId: userId,
+          attachmentUrl:
+            dto.attachmentUrl,
 
-        orgId: dto.orgId,
+          priority:
+            dto.priority,
 
-        slaPolicyId: slaPolicy.id,
-        slaDueAt,
-      },
-    });
+          requesterId:
+            userId,
+
+          orgId:
+            dto.orgId,
+
+          slaPolicyId:
+            slaPolicy.id,
+
+          slaDueAt,
+        },
+      });
 
     await this.prisma.ticketEvent.create({
       data: {
-        ticketId: ticket.id,
-        actorId: userId,
-        type: 'CREATED',
+        ticketId:
+          ticket.id,
+
+        actorId:
+          userId,
+
+        type:
+          'CREATED',
       },
     });
 
@@ -90,39 +120,41 @@ export class TicketsService {
       'test@test.com',
       'Ticket Created',
       `
-    <div style="font-family:sans-serif;">
-      <h2>Ticket Created</h2>
+      <div style="font-family:sans-serif;">
+        <h2>Ticket Created</h2>
 
-      <p>
-        Your ticket has been created.
-      </p>
+        <p>
+          Your ticket has been created.
+        </p>
 
-      <p>
-        <strong>${ticket.title}</strong>
-      </p>
+        <p>
+          <strong>${ticket.title}</strong>
+        </p>
 
-      <a
-        href="${process.env.FRONTEND_URL}/tickets/${ticket.id}"
-        style="
-          display:inline-block;
-          margin-top:12px;
-          padding:10px 16px;
-          background:black;
-          color:white;
-          text-decoration:none;
-          border-radius:8px;
-        "
-      >
-        Track Ticket
-      </a>
-    </div>
-  `,
+        <a
+          href="${process.env.FRONTEND_URL}/tickets/${ticket.id}"
+          style="
+            display:inline-block;
+            margin-top:12px;
+            padding:10px 16px;
+            background:black;
+            color:white;
+            text-decoration:none;
+            border-radius:8px;
+          "
+        >
+          Track Ticket
+        </a>
+      </div>
+    `,
     );
 
     return ticket;
   }
 
-  async getTickets(userId: string) {
+  async getTickets(
+    userId: string,
+  ) {
     const memberships =
       await this.prisma.membership.findMany({
         where: {
@@ -130,22 +162,78 @@ export class TicketsService {
         },
       });
 
-    const orgIds = memberships.map(
-      (membership) => membership.orgId,
-    );
+    const orgIds =
+      memberships.map(
+        (membership) =>
+          membership.orgId,
+      );
 
-    const tickets = await this.prisma.ticket.findMany({
+    const role =
+      memberships?.[0]?.role;
+
+    // ADMIN
+    if (role === Role.ADMIN) {
+      return this.prisma.ticket.findMany({
+        where: {
+          orgId: {
+            in: orgIds,
+          },
+        },
+
+        include: {
+          requester: true,
+          assignedTo: true,
+        },
+
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+    }
+
+    // AGENT
+    if (role === Role.AGENT) {
+      return this.prisma.ticket.findMany({
+        where: {
+          orgId: {
+            in: orgIds,
+          },
+
+          assignedToId:
+            userId,
+        },
+
+        include: {
+          requester: true,
+          assignedTo: true,
+        },
+
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+    }
+
+    // CLIENT
+    return this.prisma.ticket.findMany({
       where: {
         orgId: {
           in: orgIds,
         },
+
+        requesterId:
+          userId,
       },
+
+      include: {
+        requester: true,
+        assignedTo: true,
+      },
+
       orderBy: {
         createdAt: 'desc',
       },
     });
-
-    return tickets;
   }
 
   async updateStatus(
@@ -158,27 +246,96 @@ export class TicketsService {
         where: {
           id: ticketId,
         },
+      });
 
-        include: {
-          events: {
-            include: {
-              actor: true,
-            },
+    if (!ticket) {
+      throw new ForbiddenException(
+        'Ticket not found',
+      );
+    }
 
-            orderBy: {
-              createdAt: 'desc',
-            },
-          },
+    const membership =
+      await this.prisma.membership.findFirst({
+        where: {
+          userId,
+          orgId:
+            ticket.orgId,
+        },
+      });
 
-          comments: {
-            include: {
-              author: true,
-            },
+    if (!membership) {
+      throw new ForbiddenException(
+        'No access',
+      );
+    }
 
-            orderBy: {
-              createdAt: 'desc',
-            },
-          },
+    // CLIENT cannot update
+    if (
+      membership.role ===
+      Role.CLIENT
+    ) {
+      throw new ForbiddenException(
+        'Clients cannot update ticket status',
+      );
+    }
+
+    // AGENT can only update assigned tickets
+    if (
+      membership.role ===
+      Role.AGENT &&
+      ticket.assignedToId !==
+      userId
+    ) {
+      throw new ForbiddenException(
+        'Not assigned to this ticket',
+      );
+    }
+
+    const updatedTicket =
+      await this.prisma.ticket.update({
+        where: {
+          id: ticketId,
+        },
+
+        data: {
+          status: dto.status,
+
+          isBreached:
+            dto.status === 'RESOLVED' ||
+              dto.status === 'CLOSED'
+              ? false
+              : ticket.isBreached,
+        },
+      });
+
+    await this.prisma.ticketEvent.create({
+      data: {
+        ticketId:
+          ticket.id,
+
+        actorId:
+          userId,
+
+        type:
+          'STATUS_CHANGED',
+
+        metadata: {
+          status:
+            dto.status,
+        },
+      },
+    });
+    return updatedTicket;
+  }
+
+  async deleteTicket(
+    userId: string,
+    ticketId: string,
+  ) {
+    const ticket =
+      await this.prisma.ticket.findUnique({
+        where: {
+          id: ticketId,
         },
       });
 
@@ -198,67 +355,43 @@ export class TicketsService {
 
     if (!membership) {
       throw new ForbiddenException(
-        'No access to ticket',
+        'No access',
       );
     }
 
-    const updatedTicket =
-      await this.prisma.ticket.update({
+    if (
+      membership.role !==
+      Role.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Only admins can delete tickets',
+      );
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.comment.deleteMany({
+        where: {
+          ticketId,
+        },
+      }),
+
+      this.prisma.ticketEvent.deleteMany({
+        where: {
+          ticketId,
+        },
+      }),
+
+      this.prisma.ticket.delete({
         where: {
           id: ticketId,
         },
-        data: {
-          status: dto.status,
-        },
-      });
+      }),
+    ]);
 
-    await this.prisma.ticketEvent.create({
-      data: {
-        ticketId: ticket.id,
-        actorId: userId,
-        type: 'STATUS_CHANGED',
-
-        metadata: {
-          status: dto.status,
-        },
-      },
-    });
-
-    await this.mailService.sendEmail(
-      'test@test.com',
-      'Ticket Status Updated',
-      `
-    <div style="font-family:sans-serif;">
-      <h2>Ticket Status Updated</h2>
-
-      <p>
-        <strong>${ticket.title}</strong>
-      </p>
-
-      <p>
-        New status:
-        <strong>${dto.status}</strong>
-      </p>
-
-      <a
-        href="${process.env.FRONTEND_URL}/tickets/${ticket.id}"
-        style="
-          display:inline-block;
-          margin-top:12px;
-          padding:10px 16px;
-          background:black;
-          color:white;
-          text-decoration:none;
-          border-radius:8px;
-        "
-      >
-        View Ticket
-      </a>
-    </div>
-  `,
-    );
-
-    return updatedTicket;
+    return {
+      message:
+        'Ticket deleted successfully',
+    };
   }
 
   async assignTicket(
@@ -279,31 +412,49 @@ export class TicketsService {
       );
     }
 
-    const assignerMembership =
+    const membership =
       await this.prisma.membership.findFirst({
         where: {
           userId,
-          orgId: ticket.orgId,
+          orgId:
+            ticket.orgId,
         },
       });
 
-    if (!assignerMembership) {
+    if (!membership) {
       throw new ForbiddenException(
-        'No access to organization',
+        'No access',
       );
     }
 
-    if (assignerMembership.role !== Role.ADMIN) {
+    // CLIENT cannot assign
+    if (
+      membership.role ===
+      Role.CLIENT
+    ) {
       throw new ForbiddenException(
-        'Only admins can assign tickets',
+        'Clients cannot assign tickets',
+      );
+    }
+
+    // ONLY ADMIN
+    if (
+      membership.role !==
+      Role.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Admins only',
       );
     }
 
     const assigneeMembership =
       await this.prisma.membership.findFirst({
         where: {
-          userId: dto.assigneeUserId,
-          orgId: ticket.orgId,
+          userId:
+            dto.assigneeUserId,
+
+          orgId:
+            ticket.orgId,
         },
       });
 
@@ -313,32 +464,52 @@ export class TicketsService {
       );
     }
 
+    // cannot assign to client
+    if (
+      assigneeMembership.role ===
+      Role.CLIENT
+    ) {
+      throw new ForbiddenException(
+        'Cannot assign ticket to client',
+      );
+    }
+
     const updatedTicket =
       await this.prisma.ticket.update({
         where: {
           id: ticketId,
         },
+
         data: {
-          assignedToId: dto.assigneeUserId,
+          assignedToId:
+            dto.assigneeUserId,
         },
       });
 
     await this.prisma.ticketEvent.create({
       data: {
-        ticketId: ticket.id,
-        actorId: userId,
-        type: 'ASSIGNED',
+        ticketId:
+          ticket.id,
+
+        actorId:
+          userId,
+
+        type:
+          'ASSIGNED',
 
         metadata: {
-          assignedTo: dto.assigneeUserId,
+          assignedTo:
+            dto.assigneeUserId,
         },
       },
     });
 
+
     const assignee =
       await this.prisma.user.findUnique({
         where: {
-          id: dto.assigneeUserId,
+          id:
+            dto.assigneeUserId,
         },
       });
 
@@ -347,34 +518,33 @@ export class TicketsService {
         assignee.email,
         'Ticket Assigned',
         `
-    <div style="font-family:sans-serif;">
-      <h2>Ticket Assigned</h2>
+        <div style="font-family:sans-serif;">
+          <h2>Ticket Assigned</h2>
 
-      <p>
-        You were assigned a ticket.
-      </p>
+          <p>
+            You were assigned a ticket.
+          </p>
 
-      <p>
-        <strong>Title:</strong>
-        ${ticket.title}
-      </p>
+          <p>
+            <strong>${ticket.title}</strong>
+          </p>
 
-      <a
-        href="${process.env.FRONTEND_URL}/tickets/${ticket.id}"
-        style="
-          display:inline-block;
-          margin-top:12px;
-          padding:10px 16px;
-          background:black;
-          color:white;
-          text-decoration:none;
-          border-radius:8px;
-        "
-      >
-        Open Ticket
-      </a>
-    </div>
-  `,
+          <a
+            href="${process.env.FRONTEND_URL}/tickets/${ticket.id}"
+            style="
+              display:inline-block;
+              margin-top:12px;
+              padding:10px 16px;
+              background:black;
+              color:white;
+              text-decoration:none;
+              border-radius:8px;
+            "
+          >
+            Open Ticket
+          </a>
+        </div>
+      `,
       );
     }
 
@@ -386,33 +556,39 @@ export class TicketsService {
     ticketId: string,
   ) {
     const ticket =
-  await this.prisma.ticket.findUnique({
-    where: {
-      id: ticketId,
-    },
+      await this.prisma.ticket.findUnique({
+        where: {
+          id: ticketId,
+        },
 
-    include: {
-      events: {
         include: {
-          actor: true,
-        },
+          requester: true,
 
-        orderBy: {
-          createdAt: 'desc',
-        },
-      },
+          assignedTo: true,
 
-      comments: {
-        include: {
-          author: true,
-        },
+          events: {
+            include: {
+              actor: true,
+            },
 
-        orderBy: {
-          createdAt: 'desc',
+            orderBy: {
+              createdAt:
+                'desc',
+            },
+          },
+
+          comments: {
+            include: {
+              author: true,
+            },
+
+            orderBy: {
+              createdAt:
+                'desc',
+            },
+          },
         },
-      },
-    },
-  });
+      });
 
     if (!ticket) {
       throw new ForbiddenException(
@@ -424,40 +600,56 @@ export class TicketsService {
       await this.prisma.membership.findFirst({
         where: {
           userId,
-          orgId: ticket.orgId,
+          orgId:
+            ticket.orgId,
         },
       });
 
     if (!membership) {
       throw new ForbiddenException(
-        'No access to ticket',
+        'No access',
       );
     }
 
-    const isStaff =
-      membership.role === 'ADMIN'
-      ||
-      membership.role === 'AGENT';
-
-    const isRequester =
-      ticket.requesterId === userId;
-
-    if (!isStaff && !isRequester) {
+    // CLIENT -> own tickets only
+    if (
+      membership.role ===
+      Role.CLIENT &&
+      ticket.requesterId !==
+      userId
+    ) {
       throw new ForbiddenException(
-        'No access to ticket',
+        'No access',
+      );
+    }
+
+    // AGENT -> assigned tickets only
+    if (
+      membership.role ===
+      Role.AGENT &&
+      ticket.assignedToId !==
+      userId
+    ) {
+      throw new ForbiddenException(
+        'No access',
       );
     }
 
     return ticket;
   }
+
   async getMyTickets(
     userId: string,
   ) {
     return this.prisma.ticket.findMany({
       where: {
-        requester: {
-          id: userId,
-        },
+        requesterId:
+          userId,
+      },
+
+      include: {
+        requester: true,
+        assignedTo: true,
       },
 
       orderBy: {

@@ -42,8 +42,12 @@ export class JwtStrategy
       email:
         payload.email,
 
-      role:
-        payload.role,
+      memberships: [
+        {
+          role:
+            payload.role,
+        },
+      ],
     };
   }
 }

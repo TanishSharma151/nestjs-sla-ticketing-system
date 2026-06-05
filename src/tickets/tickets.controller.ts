@@ -7,6 +7,7 @@ import {
   UseGuards,
   Patch,
   Param,
+  Delete,
 } from '@nestjs/common';
 
 import { JwtAuthGuard }
@@ -101,6 +102,18 @@ export class TicketsController {
       req.user.userId,
       ticketId,
       dto,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  deleteTicket(
+    @Req() req: any,
+    @Param('id') ticketId: string,
+  ) {
+    return this.ticketsService.deleteTicket(
+      req.user.userId,
+      ticketId,
     );
   }
 }

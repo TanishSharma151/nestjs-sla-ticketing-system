@@ -11,6 +11,12 @@ import {
 import { JwtAuthGuard }
   from 'src/auth/guards/jwt-auth.guard';
 
+import { RolesGuard }
+  from 'src/auth/guards/roles.guard';
+
+import { Roles }
+  from 'src/auth/decorators/roles.decorator';
+
 import { SlaService }
   from './sla.service';
 
@@ -23,7 +29,11 @@ export class SlaController {
     private slaService: SlaService,
   ) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+  )
+  @Roles('ADMIN')
   @Post()
   createPolicy(
     @Req() req: any,
@@ -37,7 +47,11 @@ export class SlaController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+  )
+  @Roles('ADMIN', 'AGENT')
   @Get(':organizationId')
   getPolicies(
     @Req() req: any,

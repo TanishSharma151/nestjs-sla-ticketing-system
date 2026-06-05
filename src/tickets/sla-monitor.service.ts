@@ -54,8 +54,5 @@ export class SlaMonitorService {
       });
     }
 
-    console.log(
-      `Checked SLA breaches: ${breachedTickets.length}`,
-    );
   }
 }

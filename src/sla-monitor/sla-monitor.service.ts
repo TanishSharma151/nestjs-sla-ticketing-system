@@ -5,7 +5,9 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class SlaMonitorService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+  ) {}
 
   @Cron('*/30 * * * * *')
   async checkSlaBreaches() {
@@ -21,7 +23,10 @@ export class SlaMonitorService {
           },
 
           status: {
-            not: 'RESOLVED',
+            notIn: [
+              'RESOLVED',
+              'CLOSED',
+            ],
           },
         },
       });
@@ -31,6 +36,7 @@ export class SlaMonitorService {
         where: {
           id: ticket.id,
         },
+
         data: {
           isBreached: true,
         },
@@ -39,13 +45,10 @@ export class SlaMonitorService {
       await this.prisma.ticketEvent.create({
         data: {
           ticketId: ticket.id,
+
           type: 'SLA_BREACHED',
         },
       });
-
-      console.log(
-        `Ticket breached SLA: ${ticket.id}`,
-      );
     }
   }
 }

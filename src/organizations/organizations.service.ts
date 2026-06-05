@@ -1,17 +1,33 @@
 import {
   Injectable,
-  ForbiddenException
+  ForbiddenException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateOrgDto } from './dto/create-org.dto';
-import { Role } from '@prisma/client';
-import { UpdateRoleDto } from './dto/update-role.dto';
+
+import { PrismaService }
+  from 'src/prisma/prisma.service';
+
+import { CreateOrgDto }
+  from './dto/create-org.dto';
+
+import { Role }
+  from '@prisma/client';
+
+import { UpdateRoleDto }
+  from './dto/update-role.dto';
+
+import { AddMemberDto }
+  from './dto/add-member.dto';
 
 @Injectable()
 export class OrganizationsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+  ) { }
 
-  async createOrg(userId: string, dto: CreateOrgDto) {
+  async createOrg(
+    userId: string,
+    dto: CreateOrgDto,
+  ) {
     const organization =
       await this.prisma.organization.create({
         data: {
@@ -24,6 +40,7 @@ export class OrganizationsService {
             },
           },
         },
+
         include: {
           memberships: true,
         },
@@ -36,6 +53,7 @@ export class OrganizationsService {
     userId: string,
     orgId: string,
   ) {
+
     const membership =
       await this.prisma.membership.findFirst({
         where: {
@@ -43,6 +61,7 @@ export class OrganizationsService {
           orgId,
         },
       });
+
 
     if (!membership) {
       throw new ForbiddenException(
@@ -70,6 +89,8 @@ export class OrganizationsService {
 
     dto: UpdateRoleDto,
   ) {
+
+
     const membership =
       await this.prisma.membership.findFirst({
         where: {
@@ -78,13 +99,14 @@ export class OrganizationsService {
         },
       });
 
+
     if (!membership) {
       throw new ForbiddenException(
         'No access',
       );
     }
 
-    if (membership.role !== 'ADMIN') {
+    if (membership.role !== Role.ADMIN) {
       throw new ForbiddenException(
         'Admins only',
       );
@@ -100,4 +122,74 @@ export class OrganizationsService {
       },
     });
   }
+
+  async addMember(
+    adminId: string,
+    orgId: string,
+    dto: AddMemberDto,
+  ) {
+
+    const adminMembership =
+      await this.prisma.membership.findFirst({
+        where: {
+          userId: adminId,
+          orgId,
+        },
+      });
+
+    if (!adminMembership) {
+      throw new ForbiddenException(
+        'No access',
+      );
+    }
+
+    if (
+      adminMembership.role !==
+      Role.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Admins only',
+      );
+    }
+
+    const user =
+      await this.prisma.user.findUnique({
+        where: {
+          email: dto.email,
+        },
+      });
+
+    if (!user) {
+      throw new ForbiddenException(
+        'User not found',
+      );
+    }
+
+    const existingMembership =
+      await this.prisma.membership.findFirst({
+        where: {
+          userId: user.id,
+          orgId,
+        },
+      });
+
+    if (existingMembership) {
+      throw new ForbiddenException(
+        'Already member',
+      );
+    }
+
+    return this.prisma.membership.create({
+      data: {
+        userId: user.id,
+        orgId,
+        role: dto.role,
+      },
+
+      include: {
+        user: true,
+      },
+    });
+  }
 }
+

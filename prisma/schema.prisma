@@ -101,6 +101,7 @@ model SlaPolicy {
 enum Role {
   ADMIN
   AGENT
+  CLIENT
 }
 
 enum TicketStatus {
