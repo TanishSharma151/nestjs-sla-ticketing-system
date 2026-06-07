@@ -60,9 +60,9 @@ export class AuthController {
       {
         httpOnly: true,
 
-        secure: false,
+        secure: true,
 
-        sameSite: 'lax',
+        sameSite: 'none',
 
         maxAge:
           1000 *
