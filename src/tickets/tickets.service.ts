@@ -351,7 +351,7 @@ export class TicketsService {
         'Ticket Resolved',
 
         `
-    <div style="font-family:sans-serif;">
+      <div style="font-family:sans-serif;">
       <h2>
         Ticket Resolved
       </h2>
