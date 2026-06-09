@@ -116,10 +116,19 @@ export class TicketsService {
       },
     });
 
-    await this.mailService.sendEmail(
-      'test@test.com',
-      'Ticket Created',
-      `
+    const requester =
+      await this.prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+      });
+
+
+    if (requester) {
+      await this.mailService.sendEmail(
+        requester.email,
+        'Ticket Created',
+        `
       <div style="font-family:sans-serif;">
         <h2>Ticket Created</h2>
 
@@ -147,7 +156,8 @@ export class TicketsService {
         </a>
       </div>
     `,
-    );
+      );
+    }
 
     return ticket;
   }
@@ -246,6 +256,10 @@ export class TicketsService {
         where: {
           id: ticketId,
         },
+
+        include: {
+          requester: true,
+        }
       });
 
     if (!ticket) {
@@ -325,6 +339,55 @@ export class TicketsService {
         },
       },
     });
+
+
+    if (
+      dto.status === 'RESOLVED' &&
+      ticket.requester?.email
+    ) {
+      await this.mailService.sendEmail(
+        ticket.requester.email,
+
+        'Ticket Resolved',
+
+        `
+    <div style="font-family:sans-serif;">
+      <h2>
+        Ticket Resolved
+      </h2>
+
+      <p>
+        Good news!
+      </p>
+
+      <p>
+        Your ticket has been resolved.
+      </p>
+
+      <p>
+        <strong>
+          ${ticket.title}
+        </strong>
+      </p>
+
+      <a
+        href="${process.env.FRONTEND_URL}/tickets/${ticket.id}"
+        style="
+          display:inline-block;
+          margin-top:12px;
+          padding:10px 16px;
+          background:black;
+          color:white;
+          text-decoration:none;
+          border-radius:8px;
+        "
+      >
+        View Ticket
+      </a>
+    </div>
+    `,
+      );
+    }
     return updatedTicket;
   }
 
