@@ -60,14 +60,14 @@ export class TicketsService {
     const slaPolicy =
       await this.prisma.slaPolicy.findFirst({
         where: {
-          id: dto.slaPolicyId,
           organizationId: dto.orgId,
+          priority: dto.priority,
         },
       });
 
     if (!slaPolicy) {
       throw new ForbiddenException(
-        'Invalid SLA policy',
+        `No SLA policy configured for ${dto.priority} priority in this organization`,
       );
     }
 

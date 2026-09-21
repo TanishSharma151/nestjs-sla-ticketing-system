@@ -15,9 +15,6 @@ export class CreateTicketDto {
   @IsString()
   orgId!: string;
 
-  @IsString()
-  slaPolicyId!: string;
-
   @IsOptional()
   @IsString()
   attachmentUrl?: string;
