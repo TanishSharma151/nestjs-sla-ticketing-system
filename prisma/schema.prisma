@@ -19,6 +19,9 @@ model User {
   ticketEvents TicketEvent[]
   requestedTickets Ticket[] @relation("RequestedTickets")
   comments Comment[]
+
+  resetToken       String?
+  resetTokenExpiry DateTime?
 }
 
 model Organization {
