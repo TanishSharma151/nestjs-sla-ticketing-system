@@ -18,4 +18,8 @@ export class CreateTicketDto {
   @IsOptional()
   @IsString()
   attachmentUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  assigneeId?: string;
 }

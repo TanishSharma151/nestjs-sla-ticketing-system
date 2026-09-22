@@ -24,6 +24,10 @@ import {
 } from './dto/assign-ticket.dto';
 
 import {
+  UpdateSlaDto,
+} from './dto/update-sla.dto';
+
+import {
   calculateSlaDueDate,
 } from 'src/common/utils/calculate-sla-date';
 
@@ -76,6 +80,28 @@ export class TicketsService {
         slaPolicy.resolutionTimeHours,
       );
 
+    let assignedToId: string | undefined;
+
+    if (
+      dto.assigneeId &&
+      membership.role === Role.ADMIN
+    ) {
+      const assigneeMembership =
+        await this.prisma.membership.findFirst({
+          where: {
+            userId: dto.assigneeId,
+            orgId: dto.orgId,
+          },
+        });
+
+      if (
+        assigneeMembership &&
+        assigneeMembership.role !== Role.CLIENT
+      ) {
+        assignedToId = dto.assigneeId;
+      }
+    }
+
     const ticket =
       await this.prisma.ticket.create({
         data: {
@@ -100,6 +126,8 @@ export class TicketsService {
             slaPolicy.id,
 
           slaDueAt,
+
+          assignedToId,
         },
       });
 
@@ -115,6 +143,22 @@ export class TicketsService {
           'CREATED',
       },
     });
+
+    if (assignedToId) {
+      await this.prisma.ticketEvent.create({
+        data: {
+          ticketId: ticket.id,
+
+          actorId: userId,
+
+          type: 'ASSIGNED',
+
+          metadata: {
+            assignedTo: assignedToId,
+          },
+        },
+      });
+    }
 
     const requester =
       await this.prisma.user.findUnique({
@@ -612,6 +656,59 @@ export class TicketsService {
     }
 
     return updatedTicket;
+  }
+
+  async updateSlaDueAt(
+    userId: string,
+    ticketId: string,
+    dto: UpdateSlaDto,
+  ) {
+    const ticket =
+      await this.prisma.ticket.findUnique({
+        where: {
+          id: ticketId,
+        },
+      });
+
+    if (!ticket) {
+      throw new ForbiddenException(
+        'Ticket not found',
+      );
+    }
+
+    const membership =
+      await this.prisma.membership.findFirst({
+        where: {
+          userId,
+          orgId: ticket.orgId,
+        },
+      });
+
+    if (!membership) {
+      throw new ForbiddenException(
+        'No access',
+      );
+    }
+
+    if (membership.role !== Role.ADMIN) {
+      throw new ForbiddenException(
+        'Admins only',
+      );
+    }
+
+    const slaDueAt = new Date(dto.slaDueAt);
+
+    return this.prisma.ticket.update({
+      where: {
+        id: ticketId,
+      },
+
+      data: {
+        slaDueAt,
+
+        isBreached: slaDueAt < new Date(),
+      },
+    });
   }
 
   async getTicketById(

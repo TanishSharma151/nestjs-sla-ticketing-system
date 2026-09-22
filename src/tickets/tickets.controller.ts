@@ -25,6 +25,9 @@ import { UpdateTicketStatusDto }
 import { AssignTicketDto }
   from './dto/assign-ticket.dto';
 
+import { UpdateSlaDto }
+  from './dto/update-sla.dto';
+
 @Controller('tickets')
 export class TicketsController {
   constructor(
@@ -99,6 +102,20 @@ export class TicketsController {
     @Body() dto: AssignTicketDto,
   ) {
     return this.ticketsService.assignTicket(
+      req.user.userId,
+      ticketId,
+      dto,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/sla')
+  updateSla(
+    @Req() req: any,
+    @Param('id') ticketId: string,
+    @Body() dto: UpdateSlaDto,
+  ) {
+    return this.ticketsService.updateSlaDueAt(
       req.user.userId,
       ticketId,
       dto,
