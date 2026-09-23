@@ -63,6 +63,8 @@ model Ticket {
 
   isBreached  Boolean        @default(false)
 
+  deletedAt   DateTime?
+
   org         Organization   @relation(fields: [orgId], references: [id])
 
   slaPolicy   SlaPolicy?     @relation(fields: [slaPolicyId], references: [id])
@@ -158,4 +160,5 @@ enum TicketEventType {
   ASSIGNED
   STATUS_CHANGED
   SLA_BREACHED
+  SLA_OVERRIDDEN
 }

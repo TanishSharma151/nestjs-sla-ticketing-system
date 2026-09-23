@@ -68,6 +68,18 @@ export class TicketsController {
     );
   }
 
+  // IMPORTANT:
+  // KEEP THIS ABOVE :id
+  @UseGuards(JwtAuthGuard)
+  @Get('deleted')
+  getDeletedTickets(
+    @Req() req: any,
+  ) {
+    return this.ticketsService.getDeletedTickets(
+      req.user.userId,
+    );
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   getTicketById(
@@ -129,6 +141,18 @@ export class TicketsController {
     @Param('id') ticketId: string,
   ) {
     return this.ticketsService.deleteTicket(
+      req.user.userId,
+      ticketId,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/permanent')
+  permanentlyDeleteTicket(
+    @Req() req: any,
+    @Param('id') ticketId: string,
+  ) {
+    return this.ticketsService.permanentlyDeleteTicket(
       req.user.userId,
       ticketId,
     );

@@ -235,6 +235,7 @@ export class TicketsService {
           orgId: {
             in: orgIds,
           },
+          deletedAt: null,
         },
 
         include: {
@@ -272,6 +273,8 @@ export class TicketsService {
 
           assignedToId:
             userId,
+
+          deletedAt: null,
         },
 
         include: {
@@ -308,6 +311,8 @@ export class TicketsService {
 
         requesterId:
           userId,
+
+        deletedAt: null,
       },
 
       include: {
@@ -568,6 +573,135 @@ export class TicketsService {
       );
     }
 
+    if (ticket.deletedAt) {
+      throw new ForbiddenException(
+        'Ticket already deleted',
+      );
+    }
+
+    await this.prisma.ticket.update({
+      where: {
+        id: ticketId,
+      },
+
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    return {
+      message:
+        'Ticket deleted successfully',
+    };
+  }
+
+  async getDeletedTickets(
+    userId: string,
+  ) {
+    const memberships =
+      await this.prisma.membership.findMany({
+        where: {
+          userId,
+        },
+      });
+
+    const orgIds =
+      memberships.map(
+        (membership) =>
+          membership.orgId,
+      );
+
+    const role =
+      memberships?.[0]?.role;
+
+    if (role !== Role.ADMIN) {
+      throw new ForbiddenException(
+        'Admins only',
+      );
+    }
+
+    return this.prisma.ticket.findMany({
+      where: {
+        orgId: {
+          in: orgIds,
+        },
+
+        deletedAt: {
+          not: null,
+        },
+      },
+
+      include: {
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+          },
+        },
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+          },
+        },
+      },
+
+      orderBy: {
+        deletedAt: 'desc',
+      },
+    });
+  }
+
+  async permanentlyDeleteTicket(
+    userId: string,
+    ticketId: string,
+  ) {
+    const ticket =
+      await this.prisma.ticket.findUnique({
+        where: {
+          id: ticketId,
+        },
+      });
+
+    if (!ticket) {
+      throw new ForbiddenException(
+        'Ticket not found',
+      );
+    }
+
+    const membership =
+      await this.prisma.membership.findFirst({
+        where: {
+          userId,
+          orgId: ticket.orgId,
+        },
+      });
+
+    if (!membership) {
+      throw new ForbiddenException(
+        'No access',
+      );
+    }
+
+    if (
+      membership.role !==
+      Role.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Only admins can permanently delete tickets',
+      );
+    }
+
+    if (!ticket.deletedAt) {
+      throw new ForbiddenException(
+        'Ticket must be deleted before it can be permanently removed',
+      );
+    }
+
     await this.prisma.$transaction([
       this.prisma.comment.deleteMany({
         where: {
@@ -590,7 +724,7 @@ export class TicketsService {
 
     return {
       message:
-        'Ticket deleted successfully',
+        'Ticket permanently deleted',
     };
   }
 
@@ -794,7 +928,7 @@ export class TicketsService {
 
     const slaDueAt = new Date(dto.slaDueAt);
 
-    return this.prisma.ticket.update({
+    const updatedTicket = await this.prisma.ticket.update({
       where: {
         id: ticketId,
       },
@@ -805,6 +939,26 @@ export class TicketsService {
         isBreached: slaDueAt < new Date(),
       },
     });
+
+    await this.prisma.ticketEvent.create({
+      data: {
+        ticketId,
+
+        actorId: userId,
+
+        type: 'SLA_OVERRIDDEN',
+
+        metadata: {
+          previousSlaDueAt:
+            ticket.slaDueAt?.toISOString() ?? null,
+
+          newSlaDueAt:
+            slaDueAt.toISOString(),
+        },
+      },
+    });
+
+    return updatedTicket;
   }
 
   async getTicketById(
@@ -874,7 +1028,7 @@ export class TicketsService {
         },
       });
 
-    if (!ticket) {
+    if (!ticket || ticket.deletedAt) {
       throw new ForbiddenException(
         'Ticket not found',
       );
@@ -929,6 +1083,8 @@ export class TicketsService {
       where: {
         requesterId:
           userId,
+
+        deletedAt: null,
       },
 
       include: {
