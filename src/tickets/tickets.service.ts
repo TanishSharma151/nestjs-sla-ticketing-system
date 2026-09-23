@@ -366,6 +366,12 @@ export class TicketsService {
       );
     }
 
+    if (ticket.deletedAt) {
+      throw new ForbiddenException(
+        'This ticket has been deleted',
+      );
+    }
+
     const membership =
       await this.prisma.membership.findFirst({
         where: {
@@ -746,6 +752,12 @@ export class TicketsService {
       );
     }
 
+    if (ticket.deletedAt) {
+      throw new ForbiddenException(
+        'This ticket has been deleted',
+      );
+    }
+
     const membership =
       await this.prisma.membership.findFirst({
         where: {
@@ -903,6 +915,12 @@ export class TicketsService {
     if (!ticket) {
       throw new ForbiddenException(
         'Ticket not found',
+      );
+    }
+
+    if (ticket.deletedAt) {
+      throw new ForbiddenException(
+        'This ticket has been deleted',
       );
     }
 
