@@ -59,6 +59,7 @@ model Ticket {
 
   slaPolicyId String?
   slaDueAt    DateTime?
+  pausedAt    DateTime?
 
   isBreached  Boolean        @default(false)
 

@@ -349,6 +349,53 @@ export class TicketsService {
       );
     }
 
+    const now = new Date();
+
+    const wasOpen =
+      ticket.status === 'OPEN';
+
+    const willBeOpen =
+      dto.status === 'OPEN';
+
+    let slaDueAt = ticket.slaDueAt;
+    let pausedAt = ticket.pausedAt;
+    let isBreached = ticket.isBreached;
+
+    if (wasOpen && !willBeOpen) {
+      // Leaving OPEN: freeze the SLA clock.
+      pausedAt = now;
+    }
+
+    if (
+      !wasOpen &&
+      willBeOpen &&
+      pausedAt &&
+      slaDueAt
+    ) {
+      // Returning to OPEN: push the due date forward by
+      // however long the ticket sat paused, so the SLA
+      // clock resumes instead of already being overdue.
+      const pausedMs =
+        now.getTime() -
+        pausedAt.getTime();
+
+      slaDueAt = new Date(
+        slaDueAt.getTime() + pausedMs,
+      );
+
+      pausedAt = null;
+
+      isBreached = slaDueAt < now;
+    }
+
+    if (
+      dto.status === 'RESOLVED' ||
+      dto.status === 'CLOSED'
+    ) {
+      isBreached = false;
+      pausedAt = null;
+    }
+
     const updatedTicket =
       await this.prisma.ticket.update({
         where: {
@@ -357,12 +404,9 @@ export class TicketsService {
 
         data: {
           status: dto.status,
-
-          isBreached:
-            dto.status === 'RESOLVED' ||
-              dto.status === 'CLOSED'
-              ? false
-              : ticket.isBreached,
+          slaDueAt,
+          pausedAt,
+          isBreached,
         },
       });
 

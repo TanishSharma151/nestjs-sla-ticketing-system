@@ -22,12 +22,10 @@ export class SlaMonitorService {
             lt: now,
           },
 
-          status: {
-            notIn: [
-              'RESOLVED',
-              'CLOSED',
-            ],
-          },
+          // Only OPEN tickets have a running SLA clock -
+          // anything else (IN_PROGRESS, etc.) is paused,
+          // and RESOLVED/CLOSED are terminal.
+          status: 'OPEN',
         },
       });
 
