@@ -165,6 +165,9 @@ export class TicketsService {
         where: {
           id: userId,
         },
+        select: {
+          email: true,
+        },
       });
 
 
@@ -235,8 +238,22 @@ export class TicketsService {
         },
 
         include: {
-          requester: true,
-          assignedTo: true,
+          requester: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              createdAt: true,
+            },
+          },
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              createdAt: true,
+            },
+          },
         },
 
         orderBy: {
@@ -258,8 +275,22 @@ export class TicketsService {
         },
 
         include: {
-          requester: true,
-          assignedTo: true,
+          requester: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              createdAt: true,
+            },
+          },
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              createdAt: true,
+            },
+          },
         },
 
         orderBy: {
@@ -280,8 +311,22 @@ export class TicketsService {
       },
 
       include: {
-        requester: true,
-        assignedTo: true,
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+          },
+        },
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+          },
+        },
       },
 
       orderBy: {
@@ -302,7 +347,11 @@ export class TicketsService {
         },
 
         include: {
-          requester: true,
+          requester: {
+            select: {
+              email: true,
+            },
+          },
         }
       });
 
@@ -662,6 +711,9 @@ export class TicketsService {
           id:
             dto.assigneeUserId,
         },
+        select: {
+          email: true,
+        },
       });
 
     if (assignee) {
@@ -766,13 +818,34 @@ export class TicketsService {
         },
 
         include: {
-          requester: true,
+          requester: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              createdAt: true,
+            },
+          },
 
-          assignedTo: true,
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              createdAt: true,
+            },
+          },
 
           events: {
             include: {
-              actor: true,
+              actor: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  createdAt: true,
+                },
+              },
             },
 
             orderBy: {
@@ -783,7 +856,14 @@ export class TicketsService {
 
           comments: {
             include: {
-              author: true,
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  createdAt: true,
+                },
+              },
             },
 
             orderBy: {
@@ -852,8 +932,22 @@ export class TicketsService {
       },
 
       include: {
-        requester: true,
-        assignedTo: true,
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+          },
+        },
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+          },
+        },
       },
 
       orderBy: {

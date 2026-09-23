@@ -31,7 +31,14 @@ export class CommentsService {
       },
 
       include: {
-        author: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+          },
+        },
       },
     });
   }
