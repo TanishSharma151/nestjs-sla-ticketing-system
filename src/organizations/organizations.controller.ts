@@ -88,6 +88,12 @@ export class OrganizationsController {
       dto,
     );
   }
+
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+  )
+  @Roles('ADMIN')
   @Post(':orgId/members')
   addMember(
     @Req() req: any,

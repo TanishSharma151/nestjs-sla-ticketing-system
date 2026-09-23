@@ -1,6 +1,7 @@
 import {
   Injectable,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 
 import { PrismaService }
@@ -75,7 +76,14 @@ export class OrganizationsService {
       },
 
       include: {
-        user: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+          },
+        },
       },
     });
   }
@@ -109,6 +117,20 @@ export class OrganizationsService {
     if (membership.role !== Role.ADMIN) {
       throw new ForbiddenException(
         'Admins only',
+      );
+    }
+
+    const targetMembership =
+      await this.prisma.membership.findFirst({
+        where: {
+          id: memberId,
+          orgId,
+        },
+      });
+
+    if (!targetMembership) {
+      throw new NotFoundException(
+        'Member not found',
       );
     }
 
@@ -187,7 +209,14 @@ export class OrganizationsService {
       },
 
       include: {
-        user: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+          },
+        },
       },
     });
   }
