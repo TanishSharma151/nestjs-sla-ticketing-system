@@ -157,4 +157,16 @@ export class TicketsController {
       ticketId,
     );
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/restore')
+  restoreTicket(
+    @Req() req: any,
+    @Param('id') ticketId: string,
+  ) {
+    return this.ticketsService.restoreTicket(
+      req.user.userId,
+      ticketId,
+    );
+  }
 }

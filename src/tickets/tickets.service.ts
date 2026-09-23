@@ -595,6 +595,16 @@ export class TicketsService {
       },
     });
 
+    await this.prisma.ticketEvent.create({
+      data: {
+        ticketId,
+
+        actorId: userId,
+
+        type: 'DELETED',
+      },
+    });
+
     return {
       message:
         'Ticket deleted successfully',
@@ -660,6 +670,76 @@ export class TicketsService {
         deletedAt: 'desc',
       },
     });
+  }
+
+  async restoreTicket(
+    userId: string,
+    ticketId: string,
+  ) {
+    const ticket =
+      await this.prisma.ticket.findUnique({
+        where: {
+          id: ticketId,
+        },
+      });
+
+    if (!ticket) {
+      throw new ForbiddenException(
+        'Ticket not found',
+      );
+    }
+
+    const membership =
+      await this.prisma.membership.findFirst({
+        where: {
+          userId,
+          orgId: ticket.orgId,
+        },
+      });
+
+    if (!membership) {
+      throw new ForbiddenException(
+        'No access',
+      );
+    }
+
+    if (
+      membership.role !==
+      Role.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Only admins can restore tickets',
+      );
+    }
+
+    if (!ticket.deletedAt) {
+      throw new ForbiddenException(
+        'Ticket is not deleted',
+      );
+    }
+
+    const restoredTicket =
+      await this.prisma.ticket.update({
+        where: {
+          id: ticketId,
+        },
+
+        data: {
+          deletedAt: null,
+        },
+      });
+
+    await this.prisma.ticketEvent.create({
+      data: {
+        ticketId,
+
+        actorId: userId,
+
+        type: 'RESTORED',
+      },
+    });
+
+    return restoredTicket;
   }
 
   async permanentlyDeleteTicket(
